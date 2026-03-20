@@ -4,7 +4,7 @@ An AI-powered exam preparation platform that generates **personalized tests and 
 
 ---
 
-# 🤖 SmartStudy AI – Intelligent Exam Preparation System
+# 🤖 SmartStudy AI – MEASURE YOUR PREPARATION
 
 ## 📑 Table of Contents
 
@@ -257,7 +257,9 @@ pip install -r requirements.txt
 ## 👨‍💻 Contributors
 
 **Aswin N - CSE(AI&ML) - KIT KALAIGNARKARUNANIDHI INSTITUTE OF TECHNOLOGY**
+
 **MELVIN JESSAN - CSE(AI&ML) - KIT KALAIGNARKARUNANIDHI INSTITUTE OF TECHNOLOGY**
+
 **MANOJ KUMAR C - CSE(AI&ML) - KIT KALAIGNARKARUNANIDHI INSTITUTE OF TECHNOLOGY**
 
 ---
