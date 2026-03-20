@@ -2,10 +2,6 @@
 
 An AI-powered exam preparation platform that generates **personalized tests and practice papers** from any syllabus using LLMs, OCR, and intelligent evaluation.
 
----
-
-# 🤖 SmartStudy AI – MEASURE YOUR PREPARATION
-
 ## 📑 Table of Contents
 
 1. [Project Overview](#project-overview)
