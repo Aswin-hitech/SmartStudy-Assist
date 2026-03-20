@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report - AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="min-h-screen flex flex-col items-center">
+
+    <nav class="glass-card w-full max-w-5xl m-4 px-6 py-4 flex justify-between items-center z-50">
+        <a href="/dashboard" class="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors font-bold">
+            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <button id="downloadPdfBtn" class="btn-primary px-5 py-2 rounded-lg font-medium shadow-lg shadow-indigo-500/20 flex items-center gap-2">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF
+        </button>
+    </nav>
+
+    <main class="w-full max-w-5xl p-4 mb-20">
+        <div id="loader" class="flex flex-col items-center justify-center py-20">
+            <div class="loader scale-150 mb-4"></div>
+            <p class="text-gray-400">Loading your comprehensive report...</p>
+        </div>
+
+        <div id="reportContent" class="hidden space-y-6 fade-in">
+            <!-- Header Section -->
+            <div class="glass-card p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">Performance Evaluation</h1>
+                    <p class="text-gray-400" id="reportDate">Generated on ...</p>
+                </div>
+                <div class="text-center">
+                    <div class="relative w-32 h-32 flex items-center justify-center mb-2">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.8"/>
+                            <path id="meterPath" class="text-indigo-500" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.8"/>
+                        </svg>
+                        <span id="scorePercentage" class="absolute text-2xl font-bold">0%</span>
+                    </div>
+                    <span class="text-gray-300 font-medium bg-white/5 px-4 py-1 rounded-full"><span id="scoreValues">0/0</span> Correct</span>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Accuracy Pie Chart -->
+                <div class="glass-card p-6 flex flex-col items-center">
+                    <h3 class="text-xl font-bold mb-4 w-full">Overall Accuracy</h3>
+                    <div class="w-full max-w-[250px]">
+                        <canvas id="accuracyChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Topic Performance Bar Chart -->
+                <div class="glass-card p-6 flex flex-col items-center">
+                    <h3 class="text-xl font-bold mb-4 w-full">Topic Analysis</h3>
+                    <div class="w-full h-full min-h-[250px]">
+                        <canvas id="topicChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights (Weak / Strong Topics) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card p-6 border-t-4 border-emerald-500">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-arrow-trend-up text-emerald-400"></i> Strong Topics</h3>
+                    <ul id="strongTopicsList" class="space-y-2 text-gray-300 list-disc ml-5">
+                        <!-- Loaded dynamically -->
+                    </ul>
+                </div>
+                <div class="glass-card p-6 border-t-4 border-red-500">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-arrow-trend-down text-red-400"></i> Weak Topics</h3>
+                    <ul id="weakTopicsList" class="space-y-2 text-gray-300 list-disc ml-5">
+                        <!-- Loaded dynamically -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- AI Suggestions -->
+            <div class="glass-card p-8 bg-gradient-to-br from-indigo-500/10 to-purple-500/10">
+                <h3 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-robot text-white"></i>
+                    </div>
+                    AI Tutor Feedback
+                </h3>
+                <p id="aiSuggestions" class="text-gray-300 leading-relaxed text-lg italic border-l-4 border-indigo-500 pl-4 py-2">
+                    <!-- Loaded dynamically -->
+                </p>
+                <div class="mt-6 flex justify-end">
+                    <a href="/chat" class="btn-primary px-6 py-2 rounded-lg font-medium flex items-center gap-2">
+                        Discuss with AI <i class="fa-solid fa-comment-dots"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportId = urlParams.get('id');
+
+        if (!reportId) {
+            window.location.href = '/dashboard';
+        }
+
+        async function loadReport() {
+            try {
+                const res = await fetch(`/api/reports/${reportId}`);
+                if (!res.ok) throw new Error("Report not found");
+                
+                const data = await res.json();
+                const report = data.report;
+
+                // Set headers & meter
+                document.getElementById('reportDate').innerText = `Generated on ${new Date(report.created_at).toLocaleString()}`;
+                document.getElementById('scoreValues').innerText = `${report.score}/${report.total}`;
+                
+                const pct = report.percentage || 0;
+                document.getElementById('scorePercentage').innerText = `${pct.toFixed(0)}%`;
+                document.getElementById('meterPath').setAttribute('stroke-dasharray', `${pct}, 100`);
+
+                // Set Strong/Weak topics
+                const stList = document.getElementById('strongTopicsList');
+                stList.innerHTML = report.strong_topics.length > 0 
+                    ? report.strong_topics.map(t => `<li>${t}</li>`).join('') 
+                    : '<li class="text-gray-500 italic">None identified</li>';
+
+                const wtList = document.getElementById('weakTopicsList');
+                wtList.innerHTML = report.weak_topics.length > 0
+                    ? report.weak_topics.map(t => `<li>${t}</li>`).join('')
+                    : '<li class="text-gray-500 italic">None identified</li>';
+
+                // Set AI Suggestions
+                document.getElementById('aiSuggestions').innerText = report.suggestions || "Great job! Keep practicing.";
+
+                // Initialize Charts
+                initCharts(report);
+
+                // Show Content
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('reportContent').classList.remove('hidden');
+
+            } catch (err) {
+                alert(err.message);
+                window.location.href = '/dashboard';
+            }
+        }
+
+        function initCharts(report) {
+            Chart.defaults.color = '#94a3b8'; // text-slate-400
+            
+            // Accuracy Pie Chart
+            const ctxPie = document.getElementById('accuracyChart').getContext('2d');
+            new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Correct', 'Incorrect'],
+                    datasets: [{
+                        data: [report.score, report.total - report.score],
+                        backgroundColor: ['#10B981', '#EF4444'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            // Topic Bar Chart
+            const ctxBar = document.getElementById('topicChart').getContext('2d');
+            const topicPerf = report.topic_performance || {};
+            const labels = Object.keys(topicPerf);
+            const dataCorrect = labels.map(l => topicPerf[l].correct);
+
+            new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Correct Answers',
+                        data: dataCorrect,
+                        backgroundColor: '#4F46E5',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Download PDF functionality
+        document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('downloadPdfBtn');
+            const origHTML = btn.innerHTML;
+            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2"></div> Generating...`;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/reports/${reportId}/pdf`);
+                if (!res.ok) throw new Error("Failed to generate PDF");
+                
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `report_${reportId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.innerHTML = origHTML;
+                btn.disabled = false;
+            }
+        });
+
+        loadReport();
+    </script>
+</body>
+</html>

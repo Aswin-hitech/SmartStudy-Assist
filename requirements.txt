@@ -1,0 +1,13 @@
+flask
+flask-cors
+pymongo
+python-dotenv
+langchain
+langchain-core
+langchain-groq
+reportlab
+sentence-transformers
+matplotlib
+bcrypt
+requests
+langchain-huggingface

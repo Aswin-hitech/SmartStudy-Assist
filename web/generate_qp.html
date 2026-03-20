@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Exam - SmartStudy AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="flex min-h-screen">
+    
+    <!-- Sidebar -->
+    <aside class="w-64 glass-card m-4 p-6 hidden md:flex flex-col">
+        <div class="flex items-center gap-2 mb-10">
+            <i class="fa-solid fa-graduation-cap text-black text-2xl"></i>
+            <span class="text-xl font-bold tracking-wide">AI Assistant</span>
+        </div>
+        
+        <nav class="flex flex-col gap-2 flex-grow">
+            <a href="/dashboard" class="px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3">
+                <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+            </a>
+            <a href="/upload" class="px-4 py-3 rounded-lg bg-white/10 text-white font-medium flex items-center gap-3">
+                <i class="fa-solid fa-pen-nib w-5"></i> Generate Test
+            </a>
+            <a href="/chat" class="px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3">
+                <i class="fa-solid fa-robot w-5"></i> AI Tutor
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 md:p-8 ml-0 flex flex-col items-center justify-center">
+        <div class="glass-card w-full max-w-2xl p-8 fade-in">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold mb-2">Configure Your Exam</h2>
+                <p class="text-gray-400">Provide the syllabus and model topics to generate a personalized MCQ test.</p>
+            </div>
+
+            <form id="generateForm" class="space-y-6">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Syllabus / Topics (e.g. History of Rome)</label>
+                        <label class="cursor-pointer text-sm text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-upload"></i> Upload Image/PDF
+                            <input type="file" id="uploadSyllabus" class="hidden" accept="image/*,application/pdf">
+                        </label>
+                    </div>
+                    <textarea id="syllabus" required rows="10"
+                        class="w-full px-4 py-3 rounded-lg glass-input focus:ring-2 focus:ring-indigo-500 resize-y min-h-[250px]"
+                        placeholder="Paste your syllabus or topic content here..."></textarea>
+                </div>
+
+                <div id="mcqCountContainer">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Number of Questions</label>
+                    <input type="number" id="mcqCount" required min="1" max="50" value="10"
+                        class="w-full px-4 py-3 rounded-lg glass-input focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div id="patternContainer" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Question Paper Pattern</label>
+                    <textarea id="pattern" rows="8"
+                        class="w-full px-4 py-3 rounded-lg glass-input focus:ring-2 focus:ring-indigo-500 resize-y min-h-[150px]"
+                        placeholder="Enter question paper pattern (e.g., 16 one-mark, 10 two-mark, 5 long answers...)"></textarea>
+                </div>
+
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 text-gray-700 font-medium cursor-pointer">
+                        <input type="radio" name="mode" value="test" checked class="text-indigo-500 focus:ring-indigo-500 bg-white border-gray-300">
+                        Take Online MCQ Test
+                    </label>
+                    <label class="flex items-center gap-2 text-gray-700 font-medium cursor-pointer">
+                        <input type="radio" name="mode" value="pdf" class="text-indigo-500 focus:ring-indigo-500 bg-white border-gray-300">
+                        Download Practice PDF
+                    </label>
+                </div>
+
+                <div id="errorMsg" class="text-red-400 text-sm hidden"></div>
+
+                <button type="submit" id="submitBtn" class="w-full btn-primary py-4 rounded-lg font-bold text-lg flex justify-center items-center gap-2">
+                    <span id="btnText">Generate AI Exam</span>
+                    <i class="fa-solid fa-wand-magic-sparkles" id="btnIcon"></i>
+                </button>
+            </form>
+            
+            <div id="downloadSection" class="mt-6 text-center hidden p-4 border border-emerald-500/30 bg-emerald-500/10 rounded-lg">
+                <p class="text-emerald-400 font-medium mb-3">Your practice paper is ready!</p>
+                <a id="downloadLink" href="#" target="_blank" class="inline-block bg-emerald-500 text-white px-6 py-2 rounded font-bold hover:bg-emerald-600 transition-colors">
+                    Download PDF
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Handle Syllabus Upload
+        document.getElementById('uploadSyllabus').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const syllabusEl = document.getElementById('syllabus');
+            syllabusEl.value = "Extracting text... Please wait.";
+            syllabusEl.disabled = true;
+
+            try {
+                const res = await fetch('/api/upload/syllabus', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    syllabusEl.value = data.text;
+                } else {
+                    syllabusEl.value = "";
+                    alert("OCR Error: " + data.error);
+                }
+            } catch(err) {
+                syllabusEl.value = "";
+                alert("Upload failed: " + err.message);
+            } finally {
+                syllabusEl.disabled = false;
+                e.target.value = ''; 
+            }
+        });
+
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+        const mcqCountContainer = document.getElementById('mcqCountContainer');
+        const patternContainer = document.getElementById('patternContainer');
+        const mcqInput = document.getElementById('mcqCount');
+        const patternInput = document.getElementById('pattern');
+
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'test') {
+                    mcqCountContainer.classList.remove('hidden');
+                    mcqInput.required = true;
+                    patternContainer.classList.add('hidden');
+                    patternInput.required = false;
+                } else {
+                    mcqCountContainer.classList.add('hidden');
+                    mcqInput.required = false;
+                    patternContainer.classList.remove('hidden');
+                    patternInput.required = true;
+                }
+            });
+        });
+
+        document.getElementById('generateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const syllabus_text = document.getElementById('syllabus').value;
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            let payload = { syllabus_text, mode };
+
+            if (mode === 'test') {
+                payload.mcq_count = parseInt(mcqInput.value) || 10;
+            } else {
+                payload.question_pattern = patternInput.value;
+            }
+            
+            const btnText = document.getElementById('btnText');
+            const btnIcon = document.getElementById('btnIcon');
+            const submitBtn = document.getElementById('submitBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            const downloadSection = document.getElementById('downloadSection');
+
+            errorMsg.classList.add('hidden');
+            downloadSection.classList.add('hidden');
+            submitBtn.disabled = true;
+            btnText.innerText = "Generating AI Magic...";
+            btnIcon.className = "loader";
+
+            try {
+                const res = await fetch('/api/generate_exam', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (mode === 'test') {
+                    const data = await res.json();
+                    localStorage.setItem('currentExamData', JSON.stringify(data.mcqs));
+                    window.location.href = '/test';
+                } else {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "practice_paper.pdf";
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    btnText.innerText = "Download Started!";
+                    setTimeout(() => {
+                        btnText.innerText = "Generate AI Exam";
+                        submitBtn.disabled = false;
+                    }, 2000);
+                }
+
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                btnText.innerText = "Generate AI Exam";
+                btnIcon.className = "fa-solid fa-wand-magic-sparkles";
+            }
+        });
+    </script>
+</body>
+</html>

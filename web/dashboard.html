@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SmartStudy AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="flex min-h-screen">
+    
+    <!-- Sidebar -->
+    <aside class="w-64 glass-card m-4 p-6 hidden md:flex flex-col">
+        <div class="flex items-center gap-2 mb-10">
+            <i class="fa-solid fa-graduation-cap text-black text-2xl"></i>
+            <span class="text-xl font-bold tracking-wide">AI Assistant</span>
+        </div>
+        
+        <nav class="flex flex-col gap-2 flex-grow">
+            <a href="/dashboard" class="px-4 py-3 rounded-lg bg-white/10 text-white font-medium flex items-center gap-3">
+                <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+            </a>
+            <a href="/upload" class="px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3">
+                <i class="fa-solid fa-pen-nib w-5"></i> Generate Test
+            </a>
+            <a href="/chat" class="px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3">
+                <i class="fa-solid fa-robot w-5"></i> AI Tutor
+            </a>
+        </nav>
+
+        <button onclick="logout()" class="px-4 py-3 rounded-lg text-red-400 hover:bg-white/5 transition-colors flex items-center gap-3 mt-auto">
+            <i class="fa-solid fa-sign-out-alt w-5"></i> Logout
+        </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 md:p-8 ml-0">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-bold mb-1" id="greeting">Welcome Back</h1>
+                <p class="text-gray-400">Here is your learning overview.</p>
+            </div>
+            <a href="/upload" class="btn-primary px-5 py-2 rounded-lg font-medium flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-plus"></i> New Test
+            </a>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div class="glass-card p-6 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                    <i class="fa-solid fa-file-alt text-indigo-400 text-xl"></i>
+                </div>
+                <div>
+                    <h4 class="text-gray-400 text-sm">Total Exams</h4>
+                    <p class="text-2xl font-bold" id="examCount">0</p>
+                </div>
+            </div>
+            <div class="glass-card p-6 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <i class="fa-solid fa-bullseye text-emerald-400 text-xl"></i>
+                </div>
+                <div>
+                    <h4 class="text-gray-400 text-sm">Average Score</h4>
+                    <p class="text-2xl font-bold" id="avgScore">0%</p>
+                </div>
+            </div>
+            <!-- Additional stats can be added here -->
+        </div>
+
+        <!-- Recent Reports -->
+        <div>
+            <h3 class="text-xl font-bold mb-4">Recent Reports</h3>
+            <div class="glass-card overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white/5 text-gray-300">
+                            <th class="p-4 font-medium rounded-tl-xl">Date</th>
+                            <th class="p-4 font-medium">Score</th>
+                            <th class="p-4 font-medium">Percentage</th>
+                            <th class="p-4 font-medium rounded-tr-xl flex justify-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTable" class="divide-y divide-white/5">
+                        <tr>
+                            <td colspan="4" class="p-8 text-center text-gray-500">Loading reports...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function fetchDashboard() {
+            try {
+                // Fetch User Details
+                const profileRes = await fetch('/api/auth/me');
+                if (!profileRes.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const profileData = await profileRes.json();
+                document.getElementById('greeting').innerText = `Welcome, ${profileData.user.name.split(' ')[0]}`;
+                document.getElementById('examCount').innerText = profileData.user.exam_count || 0;
+                document.getElementById('avgScore').innerText = `${profileData.user.average_score || 0}%`;
+
+                // Fetch Reports
+                const reportsRes = await fetch('/api/reports');
+                const reportsData = await reportsRes.json();
+                const tableBody = document.getElementById('reportsTable');
+                
+                if (reportsData.reports.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">No exams taken yet. Start by generating a new test!</td></tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = reportsData.reports.map(r => {
+                    const date = new Date(r.created_at).toLocaleDateString();
+                    return `
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-4 text-gray-300">${date}</td>
+                            <td class="p-4 font-bold ${r.percentage >= 50 ? 'text-emerald-400' : 'text-red-400'}">${r.score}/${r.total}</td>
+                            <td class="p-4 text-gray-300">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-24 bg-gray-700 h-2 rounded-full overflow-hidden">
+                                        <div class="bg-indigo-500 h-full" style="width: ${r.percentage}%"></div>
+                                    </div>
+                                    <span class="text-sm">${r.percentage.toFixed(1)}%</span>
+                                </div>
+                            </td>
+                            <td class="p-4 flex justify-end gap-2">
+                                <a href="/report_view?id=${r._id}" class="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors">View</a>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        fetchDashboard();
+    </script>
+</body>
+</html>

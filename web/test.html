@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Mode - AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <nav class="glass-card m-4 px-6 py-4 flex justify-between items-center sticky top-4 z-50">
+        <div class="flex items-center gap-2">
+            <span class="text-xl font-bold tracking-wide">Exam <span class="text-red-400">Mode</span></span>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="text-lg font-bold flex items-center gap-2 text-red-400">
+                <i class="fa-solid fa-clock"></i> <span id="timer">30:00</span>
+            </div>
+            <button onclick="submitTest()" id="submitTestBtn" class="btn-primary px-6 py-2 rounded-lg font-medium shadow-lg shadow-indigo-500/20">
+                Submit Test
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex justify-center p-4">
+        <div class="w-full max-w-4xl space-y-6 pb-20 fade-in" id="questionsContainer">
+            <!-- Questions injected here -->
+        </div>
+    </main>
+    
+    <!-- Submission Overlay -->
+    <div id="submittingOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center">
+        <div class="loader mb-4 scale-150"></div>
+        <h2 class="text-2xl font-bold text-white mb-2">Evaluating your answers...</h2>
+        <p class="text-gray-400">Our AI is analyzing your performance.</p>
+    </div>
+
+    <script>
+        let mcqs = [];
+        let timeRemaining = 30 * 60; // 30 minutes
+        let timerInterval = null;
+        let selectedAnswers = {};
+
+        // Prevent refresh
+        window.onbeforeunload = function() {
+            return "Are you sure you want to leave? Your exam progress will be lost.";
+        };
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                let m = Math.floor(timeRemaining / 60);
+                let s = timeRemaining % 60;
+                document.getElementById('timer').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                
+                if (timeRemaining <= 300) {
+                    document.getElementById('timer').classList.add('animate-pulse');
+                }
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    autoSubmitTest();
+                }
+            }, 1000);
+        }
+
+        function loadQuestions() {
+            const data = localStorage.getItem('currentExamData');
+            if (!data) {
+                alert("No active exam found. Redirecting to generator.");
+                window.location.href = '/upload';
+                return;
+            }
+            mcqs = JSON.parse(data);
+            
+            // Adjust time based on number of questions (e.g. 1 min per question)
+            timeRemaining = mcqs.length * 60; 
+
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = mcqs.map((q, idx) => `
+                <div class="glass-card p-6 md:p-8" id="qBox-${idx}">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="flex items-center justify-center bg-indigo-500/20 text-indigo-400 font-bold w-10 h-10 rounded-lg">
+                            ${idx + 1}
+                        </span>
+                        <span class="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-full">${q.topic}</span>
+                    </div>
+                    
+                    <h3 class="text-xl md:text-2xl font-medium mb-6">${q.question}</h3>
+                    
+                    <div class="space-y-3">
+                        ${q.options.map((opt, optIdx) => `
+                            <label class="flex items-center gap-4 p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 transition-colors group option-label-${idx}">
+                                <input type="radio" name="q_${idx}" value="${optIdx}" onchange="selectAnswer(${idx}, ${optIdx})" class="w-5 h-5 text-indigo-500 focus:ring-indigo-500 bg-gray-800 border-gray-600">
+                                <span class="text-lg text-gray-300 group-hover:text-white transition-colors">${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            startTimer();
+        }
+
+        function selectAnswer(qIdx, optIdx) {
+            selectedAnswers[qIdx] = optIdx;
+            
+            // Highlight selected option wrapper
+            const labels = document.querySelectorAll(`.option-label-${qIdx}`);
+            labels.forEach(l => l.classList.remove('bg-indigo-500/10', 'border-indigo-500/50'));
+            
+            labels[optIdx].classList.add('bg-indigo-500/10', 'border-indigo-500/50');
+        }
+
+        async function submitTest() {
+            if(!confirm("Are you sure you want to submit your exam?")) return;
+            await finalizeSubmission();
+        }
+
+        async function autoSubmitTest() {
+            alert("Time's up! Submitting your exam automatically.");
+            await finalizeSubmission();
+        }
+
+        async function finalizeSubmission() {
+            clearInterval(timerInterval);
+            window.onbeforeunload = null; // Remove warning
+            
+            document.getElementById('submittingOverlay').style.display = 'flex';
+            document.getElementById('submitTestBtn').disabled = true;
+
+            const answersArray = [];
+            for (let i = 0; i < mcqs.length; i++) {
+                answersArray.push(selectedAnswers[i] !== undefined ? selectedAnswers[i] : null);
+            }
+
+            try {
+                const res = await fetch('/api/submit_exam', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ answers: answersArray })
+                });
+
+                const data = await res.json();
+                
+                if (res.ok) {
+                    localStorage.removeItem('currentExamData');
+                    window.location.href = `/report_view?id=${data.report_id}`;
+                } else {
+                    alert(data.error || "Failed to submit exam");
+                    document.getElementById('submittingOverlay').style.display = 'none';
+                    document.getElementById('submitTestBtn').disabled = false;
+                }
+            } catch (err) {
+                alert("Server error. Could not submit.");
+                document.getElementById('submittingOverlay').style.display = 'none';
+                document.getElementById('submitTestBtn').disabled = false;
+            }
+        }
+
+        // Initialize
+        loadQuestions();
+    </script>
+</body>
+</html>

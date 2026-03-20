@@ -1,0 +1,16 @@
+<h2>Profile</h2>
+
+<div id="data"></div>
+
+<script>
+fetch("/api/profile")
+.then(res=>res.json())
+.then(d=>{
+    data.innerHTML = `
+        Name: ${d.name}<br>
+        Email: ${d.email}<br>
+        Exams: ${d.exam_count}<br>
+        Avg Score: ${d.average_score}
+    `;
+});
+</script>
