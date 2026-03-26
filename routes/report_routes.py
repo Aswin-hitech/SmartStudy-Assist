@@ -59,3 +59,27 @@ def get_report_pdf(report_id):
         as_attachment=True,
         download_name=f"report_{report_id}.pdf"
     )
+@report_bp.route("/api/reports/<report_id>/challenge", methods=["POST"])
+def challenge_report(report_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    from services.report_service import re_evaluate_report
+
+    try:
+        report = re_evaluate_report(report_id, user_id)
+
+        # basic protection
+        if not report:
+            return jsonify({"error": "Invalid report"}), 400
+
+        report["_id"] = str(report["_id"])
+
+        return jsonify({
+            "message": "Challenge complete",
+            "report": report
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400

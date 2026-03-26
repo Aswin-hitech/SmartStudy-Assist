@@ -3,167 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exam Mode - AI Assistant</title>
+    <title>Exam Mode - SmartStudy</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="min-h-screen flex flex-col">
 
-    <!-- Header / Navbar -->
-    <nav class="glass-card m-4 px-6 py-4 flex justify-between items-center sticky top-4 z-50">
-        <div class="flex items-center gap-2">
-            <span class="text-xl font-bold tracking-wide">Exam <span class="text-red-400">Mode</span></span>
-        </div>
-        <div class="flex items-center gap-6">
-            <div class="text-lg font-bold flex items-center gap-2 text-red-400">
-                <i class="fa-solid fa-clock"></i> <span id="timer">30:00</span>
-            </div>
-            <button onclick="submitTest()" id="submitTestBtn" class="btn-primary px-6 py-2 rounded-lg font-medium shadow-lg shadow-indigo-500/20">
-                Submit Test
-            </button>
-        </div>
-    </nav>
+<body class="min-h-screen flex flex-col bg-gray-50 overflow-x-hidden">
 
-    <!-- Main Content -->
-    <main class="flex-grow flex justify-center p-4">
-        <div class="w-full max-w-4xl space-y-6 pb-20 fade-in" id="questionsContainer">
-            <!-- Questions injected here -->
-        </div>
-    </main>
-    
-    <!-- Submission Overlay -->
-    <div id="submittingOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center">
-        <div class="loader mb-4 scale-150"></div>
-        <h2 class="text-2xl font-bold text-white mb-2">Evaluating your answers...</h2>
-        <p class="text-gray-400">Our AI is analyzing your performance.</p>
+<!-- NAVBAR -->
+<nav class="glass-card m-4 px-6 py-4 flex justify-between items-center sticky top-4 z-50 shadow-sm border-white/40">
+    <div class="flex items-center gap-2">
+        <span class="text-xl font-bold bg-gradient-to-r from-gray-900 to-indigo-600 bg-clip-text text-transparent">Exam Mode</span>
     </div>
 
-    <script>
-        let mcqs = [];
-        let timeRemaining = 30 * 60; // 30 minutes
-        let timerInterval = null;
-        let selectedAnswers = {};
+    <div class="flex items-center gap-6">
+        <div class="bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200 shadow-inner flex items-center gap-2">
+            <i class="fa-solid fa-clock text-indigo-500 text-sm"></i>
+            <span id="timer" class="text-lg font-bold text-gray-800 font-mono">30:00</span>
+        </div>
 
-        // Prevent refresh
-        window.onbeforeunload = function() {
-            return "Are you sure you want to leave? Your exam progress will be lost.";
-        };
+        <button onclick="submitTest()" id="submitTestBtn"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-bold transition-all shadow-md shadow-indigo-100">
+            Submit Test
+        </button>
+    </div>
+</nav>
 
-        function startTimer() {
-            timerInterval = setInterval(() => {
-                timeRemaining--;
-                let m = Math.floor(timeRemaining / 60);
-                let s = timeRemaining % 60;
-                document.getElementById('timer').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                
-                if (timeRemaining <= 300) {
-                    document.getElementById('timer').classList.add('animate-pulse');
-                }
 
-                if (timeRemaining <= 0) {
-                    clearInterval(timerInterval);
-                    autoSubmitTest();
-                }
-            }, 1000);
-        }
+<!-- MAIN -->
+<main class="flex-grow flex justify-center p-6 relative max-w-[1400px] mx-auto w-full">
 
-        function loadQuestions() {
-            const data = localStorage.getItem('currentExamData');
-            if (!data) {
-                alert("No active exam found. Redirecting to generator.");
-                window.location.href = '/upload';
-                return;
-            }
-            mcqs = JSON.parse(data);
-            
-            // Adjust time based on number of questions (e.g. 1 min per question)
-            timeRemaining = mcqs.length * 60; 
+    <!-- Questions Area -->
+    <div id="questionsContainer" class="w-full max-w-3xl space-y-6 pb-24"></div>
 
-            const container = document.getElementById('questionsContainer');
-            container.innerHTML = mcqs.map((q, idx) => `
-                <div class="glass-card p-6 md:p-8" id="qBox-${idx}">
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="flex items-center justify-center bg-indigo-500/20 text-indigo-400 font-bold w-10 h-10 rounded-lg">
-                            ${idx + 1}
-                        </span>
-                        <span class="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-full">${q.topic}</span>
-                    </div>
-                    
-                    <h3 class="text-xl md:text-2xl font-medium mb-6">${q.question}</h3>
-                    
-                    <div class="space-y-3">
-                        ${q.options.map((opt, optIdx) => `
-                            <label class="flex items-center gap-4 p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 transition-colors group option-label-${idx}">
-                                <input type="radio" name="q_${idx}" value="${optIdx}" onchange="selectAnswer(${idx}, ${optIdx})" class="w-5 h-5 text-indigo-500 focus:ring-indigo-500 bg-gray-800 border-gray-600">
-                                <span class="text-lg text-gray-300 group-hover:text-white transition-colors">${opt}</span>
-                            </label>
-                        `).join('')}
-                    </div>
+    <!-- PROCTORING SIDEBAR -->
+    <aside class="hidden lg:block w-64 ml-8 sticky top-28 self-start">
+        <div class="glass-card p-4 rounded-2xl shadow-premium border-white/50 bg-white/80 overflow-hidden">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Security Feed</span>
+                <span class="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> LIVE
+                </span>
+            </div>
+
+            <div class="relative rounded-xl overflow-hidden bg-gray-200 aspect-video shadow-inner ring-1 ring-gray-100">
+                <img id="videoFeed" src="/video_feed" class="w-full h-full object-cover" onerror="this.src='/static/img/no-feed.png'">
+            </div>
+
+            <!-- ANALYTICS -->
+            <div class="mt-4 grid grid-cols-2 gap-3">
+                <div class="bg-white/50 p-2.5 rounded-xl border border-white/20 text-center">
+                    <p class="text-[9px] uppercase font-bold text-gray-400 mb-0.5">Head Orientation</p>
+                    <p id="headStatus" class="text-sm font-bold text-indigo-600 tracking-tight">Center</p>
                 </div>
-            `).join('');
-
-            startTimer();
-        }
-
-        function selectAnswer(qIdx, optIdx) {
-            selectedAnswers[qIdx] = optIdx;
+                <div class="bg-white/50 p-2.5 rounded-xl border border-white/20 text-center">
+                    <p class="text-[9px] uppercase font-bold text-gray-400 mb-0.5">Movements</p>
+                    <p id="headCount" class="text-sm font-bold text-indigo-600 tracking-tight">0</p>
+                </div>
+            </div>
             
-            // Highlight selected option wrapper
-            const labels = document.querySelectorAll(`.option-label-${qIdx}`);
-            labels.forEach(l => l.classList.remove('bg-indigo-500/10', 'border-indigo-500/50'));
-            
-            labels[optIdx].classList.add('bg-indigo-500/10', 'border-indigo-500/50');
-        }
+            <p class="mt-4 text-[10px] text-gray-400 text-center italic">Keep your face within the frame at all times.</p>
+        </div>
+    </aside>
 
-        async function submitTest() {
-            if(!confirm("Are you sure you want to submit your exam?")) return;
-            await finalizeSubmission();
-        }
+</main>
 
-        async function autoSubmitTest() {
-            alert("Time's up! Submitting your exam automatically.");
-            await finalizeSubmission();
-        }
 
-        async function finalizeSubmission() {
+<!-- SUBMISSION LOADER -->
+<div id="submittingOverlay" class="fixed inset-0 bg-gray-900/90 backdrop-blur-md hidden flex-col items-center justify-center z-[100] text-white">
+    <div class="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
+    <h2 class="text-2xl font-bold mb-2">Analyzing Performance</h2>
+    <p class="text-gray-400 animate-pulse">Safely closing secure environment...</p>
+</div>
+
+
+<script>
+// 🔒 PROTECT ROUTE (PREVENT DIRECT ACCESS)
+if (!localStorage.getItem("currentExamData")) {
+    window.location.href = "/upload";
+}
+let mcqs = [];
+let selectedAnswers = {};
+let timeRemaining = 30 * 60;
+let timerInterval = null;
+
+// ================= LIFECYCLE: CAMERA RELEASE =================
+function stopProctoring() {
+    // navigator.sendBeacon is more reliable for page dismissal
+    // fetch is a fallback
+    try {
+        navigator.sendBeacon('/api/proctoring_stop');
+        fetch('/api/proctoring_stop', { method: 'GET', keepalive: true }).catch(() => {});
+    } catch (e) {}
+}
+
+window.addEventListener('beforeunload', stopProctoring);
+window.addEventListener('pagehide', stopProctoring);
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') stopProctoring();
+});
+
+
+// ================= TIMER =================
+function startTimer() {
+    timerInterval = setInterval(() => {
+        timeRemaining--;
+
+        let m = Math.floor(timeRemaining / 60);
+        let s = timeRemaining % 60;
+
+        document.getElementById("timer").innerText =
+            `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+        if (timeRemaining <= 0) {
             clearInterval(timerInterval);
-            window.onbeforeunload = null; // Remove warning
-            
-            document.getElementById('submittingOverlay').style.display = 'flex';
-            document.getElementById('submitTestBtn').disabled = true;
+            submitTest();
+        }
+    }, 1000);
+}
 
-            const answersArray = [];
-            for (let i = 0; i < mcqs.length; i++) {
-                answersArray.push(selectedAnswers[i] !== undefined ? selectedAnswers[i] : null);
-            }
 
-            try {
-                const res = await fetch('/api/submit_exam', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ answers: answersArray })
-                });
+// ================= LOAD QUESTIONS =================
+function loadQuestions() {
+    const data = localStorage.getItem("currentExamData");
 
-                const data = await res.json();
-                
-                if (res.ok) {
-                    localStorage.removeItem('currentExamData');
-                    window.location.href = `/report_view?id=${data.report_id}`;
-                } else {
-                    alert(data.error || "Failed to submit exam");
-                    document.getElementById('submittingOverlay').style.display = 'none';
-                    document.getElementById('submitTestBtn').disabled = false;
-                }
-            } catch (err) {
-                alert("Server error. Could not submit.");
-                document.getElementById('submittingOverlay').style.display = 'none';
-                document.getElementById('submitTestBtn').disabled = false;
-            }
+    if (!data) {
+        alert("No exam found. Redirecting to syllabus upload.");
+        window.location.href = "/upload";
+        return;
+    }
+
+    try {
+        mcqs = JSON.parse(data);
+        timeRemaining = Math.max(mcqs.length * 60, 300); // min 5 mins
+
+        const container = document.getElementById("questionsContainer");
+        container.innerHTML = mcqs.map((q, idx) => `
+            <div class="glass-card p-8 rounded-2xl shadow-sm border border-gray-100/50 hover:border-indigo-100 transition-colors bg-white">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="flex items-center justify-center bg-indigo-600 text-white font-bold w-10 h-10 rounded-xl shadow-md shadow-indigo-100">
+                        ${idx + 1}
+                    </span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-indigo-500 bg-indigo-50/50 px-3 py-1 rounded-lg">
+                        ${q.topic || 'Concept'}
+                    </span>
+                </div>
+
+                <h3 class="text-xl font-medium mb-8 text-gray-800 leading-relaxed">
+                    ${q.question}
+                </h3>
+
+                <div class="grid grid-cols-1 gap-3">
+                    ${q.options.map((opt, i) => `
+                        <label class="group flex items-center gap-4 p-4 rounded-xl border border-gray-100 cursor-pointer transition-all hover:bg-indigo-50/30 hover:border-indigo-200">
+                            <input type="radio" name="q${idx}" class="w-5 h-5 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                                onchange="selectAnswer(${idx}, ${i})">
+                            <span class="text-lg text-gray-700 group-hover:text-indigo-700 transition-colors">${opt}</span>
+                        </label>
+                    `).join("")}
+                </div>
+            </div>
+        `).join("");
+
+        startTimer();
+    } catch (e) {
+        console.error("Exam data corrupted", e);
+        window.location.href = "/upload";
+    }
+}
+
+
+// ================= SELECT =================
+function selectAnswer(q, opt) {
+    selectedAnswers[q] = opt;
+    // Highlight the selected label
+}
+
+
+// ================= SUBMIT =================
+async function submitTest() {
+    if (!confirm("Are you sure you want to submit your test?")) return;
+
+    clearInterval(timerInterval);
+    document.getElementById("submittingOverlay").style.display = "flex";
+
+    // 1. Release camera immediately
+    stopProctoring();
+
+    const answers = [];
+    for (let i = 0; i < mcqs.length; i++) {
+        answers.push(selectedAnswers[i] ?? null);
+    }
+
+    try {
+        const res = await fetch("/api/submit_exam", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ answers })
+        });
+
+        const data = await res.json();
+        if (data.report_id) {
+            window.location.href = `/report_view?id=${data.report_id}`;
+        } else {
+            alert("Submission error: ID not returned");
+            window.location.href = "/dashboard";
+        }
+    } catch (e) {
+        alert("Network error during submission.");
+        document.getElementById("submittingOverlay").style.display = "none";
+    }
+}
+
+
+// ================= HEAD STATUS FETCH =================
+async function updateHeadStatus() {
+    try {
+        const res = await fetch("/api/proctoring_status"); // Using blueprint route
+        const data = await res.json();
+
+        const statusEl = document.getElementById("headStatus");
+        const countEl = document.getElementById("headCount");
+
+        if (statusEl) statusEl.innerText = data.status || "Center";
+        if (countEl) countEl.innerText = data.position_changes ?? 0;
+
+        // UI Feedback for movement
+        if (data.status === "Left" || data.status === "Right") {
+             statusEl.classList.add("text-amber-500");
+             statusEl.classList.remove("text-indigo-600");
+        } else {
+             statusEl.classList.remove("text-amber-500");
+             statusEl.classList.add("text-indigo-600");
         }
 
-        // Initialize
-        loadQuestions();
-    </script>
+    } catch (e) {
+        console.warn("Status fetch failed", e);
+    }
+}
+
+// update status
+setInterval(updateHeadStatus, 1500);
+
+// ================= INIT =================
+window.onload = loadQuestions;
+
+</script>
+
+</body>
+</html>
+
+
 </body>
 </html>

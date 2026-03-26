@@ -8,59 +8,67 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Additional inline styles for chat specific */
+        .message-bubble {
+            animation: slideInMessage 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+    </style>
 </head>
-<body class="flex min-h-screen">
-    
+<body class="flex min-h-screen p-4">
     <!-- Sidebar -->
-    <aside class="w-64 glass-card m-4 p-6 hidden md:flex flex-col">
-        <div class="flex items-center gap-2 mb-10">
-            <i class="fa-solid fa-graduation-cap text-black text-2xl"></i>
-            <span class="text-xl font-bold tracking-wide">AI Assistant</span>
+    <aside class="w-64 glass-card m-4 p-6 hidden md:flex flex-col shadow-xl" style="background: rgba(255,255,255,0.92);">
+        <div class="flex items-center gap-3 mb-10">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-graduation-cap text-white text-xl"></i>
+            </div>
+            <span class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-emerald-600 bg-clip-text text-transparent">SmartStudy AI</span>
         </div>
         
         <nav class="flex flex-col gap-2 flex-grow">
-            <a href="/dashboard" class="px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3">
+            <a href="/dashboard" class="nav-item px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-all flex items-center gap-3">
                 <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
             </a>
-            <a href="/upload" class="px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3">
+            <a href="/upload" class="nav-item px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-all flex items-center gap-3">
                 <i class="fa-solid fa-pen-nib w-5"></i> Generate Test
             </a>
-            <a href="/chat" class="px-4 py-3 rounded-lg bg-white/10 text-white font-medium flex items-center gap-3">
+            <a href="/chat" class="nav-item active px-4 py-3 rounded-xl font-medium flex items-center gap-3">
                 <i class="fa-solid fa-robot w-5"></i> AI Tutor
             </a>
         </nav>
+
+        <button onclick="logout()" class="mt-auto px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-all flex items-center gap-3">
+            <i class="fa-solid fa-sign-out-alt w-5"></i> Logout
+        </button>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-grow flex flex-col p-4 md:p-8 ml-0">
-        <header class="mb-6">
-            <h1 class="text-3xl font-bold mb-1">AI Tutor</h1>
-            <p class="text-gray-400">Ask any questions or clarify doubts from your latest exam.</p>
+    <main class="flex-grow flex flex-col p-4 md:p-8">
+        <header class="mb-6 animate-[fadeIn_0.4s_ease-out]">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">AI Tutor</h1>
+            <p class="text-gray-500 mt-1">Ask any questions or clarify doubts from your latest exam.</p>
         </header>
 
-        <div class="flex-grow glass-card flex flex-col overflow-hidden max-w-4xl w-full h-[70vh]">
-            
+        <div class="flex-grow glass-card flex flex-col overflow-hidden max-w-4xl w-full h-[70vh] shadow-2xl">
             <!-- Chat History -->
-            <div id="chatHistory" class="flex-grow overflow-y-auto p-6 space-y-6 scroll-smooth custom-scrollbar">
-                
+            <div id="chatHistory" class="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
                 <!-- Initial Bot Message -->
-                <div class="flex gap-4 fade-in">
-                    <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                <div class="flex gap-4 message-bubble">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0 shadow-md">
                         <i class="fa-solid fa-robot text-white"></i>
                     </div>
-                    <div class="bg-white/5 border border-white/10 p-4 rounded-2xl rounded-tl-smtext-gray-200">
-                        <p>Hello! I am your AI Tutor. Let me know if you need help understanding a topic or have a question from your tests!</p>
+                    <div class="bg-white/90 border border-gray-100 p-4 rounded-2xl rounded-tl-sm shadow-sm">
+                        <p class="text-gray-700">Hello! I am your AI Tutor. Let me know if you need help understanding a topic or have a question from your tests!</p>
                     </div>
                 </div>
-
             </div>
 
             <!-- Input Area -->
-            <div class="p-4 bg-white/5 border-t border-white/10">
-                <form id="chatForm" class="flex gap-4 text-gray-200 bg-gray-900 rounded-xl p-2 items-center">
-                    <input type="text" id="chatInput" autocomplete="off" placeholder="Type your question..." required
-                           class="flex-grow px-4 py-2 bg-transparent focus:outline-none text-white placeholder-gray-500">
-                    <button type="submit" id="sendBtn" class="w-10 h-10 rounded-lg bg-indigo-500 hover:bg-indigo-600 transition-colors flex items-center justify-center text-white shrink-0">
+            <div class="p-4 border-t border-gray-100 bg-white/40">
+                <form id="chatForm" class="flex gap-3">
+                    <input type="text" id="chatInput" autocomplete="off" placeholder="Type your question..." 
+                           class="flex-grow px-5 py-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all">
+                    <button type="submit" id="sendBtn" class="btn-gradient w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md">
                         <i class="fa-solid fa-paper-plane"></i>
                     </button>
                 </form>
@@ -76,15 +84,15 @@
 
         function appendMessage(role, text) {
             const wrapper = document.createElement('div');
-            wrapper.className = `flex gap-4 fade-in ${role === 'user' ? 'flex-row-reverse' : ''}`;
+            wrapper.className = `flex gap-4 message-bubble ${role === 'user' ? 'flex-row-reverse' : ''}`;
             
             const avatar = role === 'user' 
-                ? `<div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-user text-white"></i></div>`
-                : `<div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-robot text-white"></i></div>`;
+                ? `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shrink-0 shadow-md"><i class="fa-solid fa-user text-white"></i></div>`
+                : `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0 shadow-md"><i class="fa-solid fa-robot text-white"></i></div>`;
             
             const messageClass = role === 'user'
-                ? `bg-emerald-500/20 text-white rounded-tr-sm`
-                : `bg-white/5 border border-white/10 text-gray-200 rounded-tl-sm`;
+                ? `bg-gradient-to-r from-emerald-50 to-teal-50 text-gray-800 rounded-tr-sm border border-emerald-100`
+                : `bg-white/90 border border-gray-100 text-gray-800 rounded-tl-sm shadow-sm`;
 
             // Parse markdown for bot response
             const htmlText = role === 'bot' ? marked.parse(text) : text;
@@ -102,17 +110,17 @@
 
         function appendLoader() {
             const wrapper = document.createElement('div');
-            wrapper.className = `flex gap-4 fade-in`;
+            wrapper.className = `flex gap-4 message-bubble`;
             wrapper.id = 'typingIndicator';
             
             wrapper.innerHTML = `
-                <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0 shadow-md">
                     <i class="fa-solid fa-robot text-white"></i>
                 </div>
-                <div class="bg-white/5 border border-white/10 p-4 rounded-2xl rounded-tl-sm text-gray-200 flex items-center gap-1">
-                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
-                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                <div class="bg-white/90 border border-gray-100 p-4 rounded-2xl rounded-tl-sm flex items-center gap-2">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot" style="animation-delay: 0.1s"></span>
+                    <span class="typing-dot" style="animation-delay: 0.2s"></span>
                 </div>
             `;
             chatHistory.appendChild(wrapper);
@@ -143,7 +151,8 @@
                 const data = await res.json();
                 
                 // Remove typing indicator
-                document.getElementById('typingIndicator').remove();
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (typingIndicator) typingIndicator.remove();
                 
                 if (res.ok) {
                     appendMessage('bot', data.reply);
@@ -151,7 +160,8 @@
                     appendMessage('bot', "Sorry, I am facing some issues. Please try again later.");
                 }
             } catch(err) {
-                document.getElementById('typingIndicator').remove();
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (typingIndicator) typingIndicator.remove();
                 appendMessage('bot', "Server Error. Could not connect to the AI model.");
             } finally {
                 sendBtn.disabled = false;
@@ -159,19 +169,11 @@
                 chatInput.focus();
             }
         });
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
     </script>
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        
-        /* Markdown overrides */
-        .markdown-body p { margin-bottom: 0.5rem; }
-        .markdown-body p:last-child { margin-bottom: 0; }
-        .markdown-body ul, .markdown-body ol { margin-left: 1.5rem; margin-bottom: 0.5rem; }
-        .markdown-body code { background: rgba(255,255,255,0.1); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace; }
-        .markdown-body pre { background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 0.5rem; }
-        .markdown-body pre code { background: transparent; padding: 0; }
-    </style>
 </body>
 </html>

@@ -1,16 +1,77 @@
-<h2>Profile</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - SmartStudy AI</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .profile-card {
+            max-width: 600px;
+            margin: 2rem auto;
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stat-item {
+            transition: all 0.3s ease;
+        }
+        .stat-item:hover {
+            transform: translateX(8px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+    <div class="glass-card profile-card p-8 shadow-2xl">
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center mx-auto mb-4 shadow-xl">
+                <i class="fa-solid fa-user text-white text-3xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">My Profile</h2>
+        </div>
+        
+        <div id="data" class="space-y-4">
+            <div class="stat-item flex justify-between items-center p-4 bg-white/50 rounded-xl">
+                <span class="font-semibold text-gray-600"><i class="fa-solid fa-user mr-3 text-indigo-500"></i>Name:</span>
+                <span class="text-gray-800 font-medium" id="profileName">Loading...</span>
+            </div>
+            <div class="stat-item flex justify-between items-center p-4 bg-white/50 rounded-xl">
+                <span class="font-semibold text-gray-600"><i class="fa-solid fa-envelope mr-3 text-indigo-500"></i>Email:</span>
+                <span class="text-gray-800 font-medium" id="profileEmail">Loading...</span>
+            </div>
+            <div class="stat-item flex justify-between items-center p-4 bg-white/50 rounded-xl">
+                <span class="font-semibold text-gray-600"><i class="fa-solid fa-file-alt mr-3 text-indigo-500"></i>Total Exams:</span>
+                <span class="text-gray-800 font-medium" id="profileExams">0</span>
+            </div>
+            <div class="stat-item flex justify-between items-center p-4 bg-white/50 rounded-xl">
+                <span class="font-semibold text-gray-600"><i class="fa-solid fa-chart-line mr-3 text-indigo-500"></i>Average Score:</span>
+                <span class="text-gray-800 font-medium" id="profileAvg">0%</span>
+            </div>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <a href="/dashboard" class="btn-primary inline-block px-6 py-3 rounded-xl font-medium">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
 
-<div id="data"></div>
-
-<script>
-fetch("/api/profile")
-.then(res=>res.json())
-.then(d=>{
-    data.innerHTML = `
-        Name: ${d.name}<br>
-        Email: ${d.email}<br>
-        Exams: ${d.exam_count}<br>
-        Avg Score: ${d.average_score}
-    `;
-});
-</script>
+    <script>
+        fetch("/api/auth/me")
+            .then(res => res.json())
+            .then(d => {
+                document.getElementById('profileName').innerText = d.user.name;
+                document.getElementById('profileEmail').innerText = d.user.email;
+                document.getElementById('profileExams').innerText = d.user.exam_count || 0;
+                document.getElementById('profileAvg').innerText = `${d.user.average_score || 0}%`;
+            })
+            .catch(err => {
+                document.getElementById('profileName').innerText = 'Error loading profile';
+                console.error(err);
+            });
+    </script>
+</body>
+</html>

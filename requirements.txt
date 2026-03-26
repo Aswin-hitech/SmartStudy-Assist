@@ -11,3 +11,7 @@ matplotlib
 bcrypt
 requests
 langchain-huggingface
+
+# Proctoring Dependencies
+opencv-python
+ultralytics

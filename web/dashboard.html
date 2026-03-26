@@ -7,85 +7,102 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .stat-card {
+            transition: all 0.3s cubic-bezier(0.2,0.9,0.4,1.1);
+            animation: fadeIn 0.5s ease-out;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+        .table-row {
+            transition: all 0.2s;
+        }
+        .table-row:hover {
+            background: rgba(79,70,229,0.04);
+            transform: translateX(4px);
+        }
+        .progress-bar-fill {
+            transition: width 0.8s cubic-bezier(0.2,0.9,0.4,1.1);
+        }
+    </style>
 </head>
-<body class="flex min-h-screen">
-    
+<body class="flex min-h-screen p-4">
     <!-- Sidebar -->
-    <aside class="w-64 glass-card m-4 p-6 hidden md:flex flex-col">
-        <div class="flex items-center gap-2 mb-10">
-            <i class="fa-solid fa-graduation-cap text-black text-2xl"></i>
-            <span class="text-xl font-bold tracking-wide">AI Assistant</span>
+    <aside class="w-64 glass-card m-4 p-6 hidden md:flex flex-col shadow-xl" style="background: rgba(255,255,255,0.92);">
+        <div class="flex items-center gap-3 mb-10">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-graduation-cap text-white text-xl"></i>
+            </div>
+            <span class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-emerald-600 bg-clip-text text-transparent">SmartStudy AI</span>
         </div>
         
         <nav class="flex flex-col gap-2 flex-grow">
-            <a href="/dashboard" class="px-4 py-3 rounded-lg bg-white/10 text-white font-medium flex items-center gap-3">
+            <a href="/dashboard" class="nav-item active px-4 py-3 rounded-xl font-medium flex items-center gap-3">
                 <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
             </a>
-            <a href="/upload" class="px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3">
+            <a href="/upload" class="nav-item px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-all flex items-center gap-3">
                 <i class="fa-solid fa-pen-nib w-5"></i> Generate Test
             </a>
-            <a href="/chat" class="px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3">
+            <a href="/chat" class="nav-item px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-all flex items-center gap-3">
                 <i class="fa-solid fa-robot w-5"></i> AI Tutor
             </a>
         </nav>
 
-        <button onclick="logout()" class="px-4 py-3 rounded-lg text-red-400 hover:bg-white/5 transition-colors flex items-center gap-3 mt-auto">
+        <button onclick="logout()" class="mt-auto px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 hover:px-6 transition-all flex items-center gap-3 font-semibold">
             <i class="fa-solid fa-sign-out-alt w-5"></i> Logout
         </button>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-grow p-4 md:p-8 ml-0">
-        <header class="flex justify-between items-center mb-10">
+    <main class="flex-grow p-4 md:p-8">
+        <header class="flex justify-between items-center mb-8 animate-[fadeIn_0.4s_ease-out]">
             <div>
-                <h1 class="text-3xl font-bold mb-1" id="greeting">Welcome Back</h1>
-                <p class="text-gray-400">Here is your learning overview.</p>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent" id="greeting">Welcome Back</h1>
+                <p class="text-gray-500 mt-1">Here is your learning overview.</p>
             </div>
-            <a href="/upload" class="btn-primary px-5 py-2 rounded-lg font-medium flex items-center gap-2 shadow-lg">
+            <a href="/upload" class="btn-gradient px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 text-white shadow-md">
                 <i class="fa-solid fa-plus"></i> New Test
             </a>
         </header>
 
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div class="glass-card p-6 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                    <i class="fa-solid fa-file-alt text-indigo-400 text-xl"></i>
+            <div class="glass-card p-6 flex items-center gap-4 stat-card">
+                <div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
+                    <i class="fa-solid fa-file-alt text-indigo-600 text-xl"></i>
                 </div>
                 <div>
-                    <h4 class="text-gray-400 text-sm">Total Exams</h4>
-                    <p class="text-2xl font-bold" id="examCount">0</p>
+                    <h4 class="text-gray-500 text-sm">Total Exams</h4>
+                    <p class="text-3xl font-bold text-gray-800" id="examCount">0</p>
                 </div>
             </div>
-            <div class="glass-card p-6 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <i class="fa-solid fa-bullseye text-emerald-400 text-xl"></i>
+            <div class="glass-card p-6 flex items-center gap-4 stat-card">
+                <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <i class="fa-solid fa-bullseye text-emerald-600 text-xl"></i>
                 </div>
                 <div>
-                    <h4 class="text-gray-400 text-sm">Average Score</h4>
-                    <p class="text-2xl font-bold" id="avgScore">0%</p>
+                    <h4 class="text-gray-500 text-sm">Average Score</h4>
+                    <p class="text-3xl font-bold text-gray-800" id="avgScore">0%</p>
                 </div>
             </div>
-            <!-- Additional stats can be added here -->
         </div>
 
         <!-- Recent Reports -->
         <div>
-            <h3 class="text-xl font-bold mb-4">Recent Reports</h3>
-            <div class="glass-card overflow-hidden">
-                <table class="w-full text-left border-collapse">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Reports</h3>
+            <div class="glass-card overflow-hidden shadow-lg">
+                <table class="w-full text-left">
                     <thead>
-                        <tr class="bg-white/5 text-gray-300">
-                            <th class="p-4 font-medium rounded-tl-xl">Date</th>
-                            <th class="p-4 font-medium">Score</th>
-                            <th class="p-4 font-medium">Percentage</th>
-                            <th class="p-4 font-medium rounded-tr-xl flex justify-end">Actions</th>
+                        <tr class="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+                            <th class="p-4 font-semibold text-gray-600">Date</th>
+                            <th class="p-4 font-semibold text-gray-600">Score</th>
+                            <th class="p-4 font-semibold text-gray-600">Percentage</th>
+                            <th class="p-4 font-semibold text-gray-600 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="reportsTable" class="divide-y divide-white/5">
-                        <tr>
-                            <td colspan="4" class="p-8 text-center text-gray-500">Loading reports...</td>
-                        </tr>
+                    <tbody id="reportsTable" class="divide-y divide-gray-100">
+                        <tr><td colspan="4" class="p-8 text-center text-gray-400">Loading reports...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -112,26 +129,26 @@
                 const tableBody = document.getElementById('reportsTable');
                 
                 if (reportsData.reports.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">No exams taken yet. Start by generating a new test!</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">No exams taken yet. Start by generating a new test!</td></tr>`;
                     return;
                 }
 
                 tableBody.innerHTML = reportsData.reports.map(r => {
                     const date = new Date(r.created_at).toLocaleDateString();
                     return `
-                        <tr class="hover:bg-white/5 transition-colors">
-                            <td class="p-4 text-gray-300">${date}</td>
-                            <td class="p-4 font-bold ${r.percentage >= 50 ? 'text-emerald-400' : 'text-red-400'}">${r.score}/${r.total}</td>
-                            <td class="p-4 text-gray-300">
+                        <tr class="table-row">
+                            <td class="p-4 text-gray-600">${date}</td>
+                            <td class="p-4 font-bold ${r.percentage >= 50 ? 'text-emerald-600' : 'text-red-500'}">${r.score}/${r.total}</td>
+                            <td class="p-4">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-24 bg-gray-700 h-2 rounded-full overflow-hidden">
-                                        <div class="bg-indigo-500 h-full" style="width: ${r.percentage}%"></div>
+                                    <div class="w-24 bg-gray-200 h-2 rounded-full overflow-hidden">
+                                        <div class="progress-bar-fill bg-gradient-to-r from-indigo-500 to-emerald-500 h-full" style="width: ${r.percentage}%"></div>
                                     </div>
-                                    <span class="text-sm">${r.percentage.toFixed(1)}%</span>
+                                    <span class="text-sm text-gray-500">${r.percentage.toFixed(1)}%</span>
                                 </div>
                             </td>
-                            <td class="p-4 flex justify-end gap-2">
-                                <a href="/report_view?id=${r._id}" class="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors">View</a>
+                            <td class="p-4 text-right">
+                                <a href="/report_view?id=${r._id}" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-indigo-600 text-sm transition-all">View</a>
                             </td>
                         </tr>
                     `;
