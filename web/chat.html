@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/js/main.js"></script>
     <style>
         /* Additional inline styles for chat specific */
         .message-bubble {
@@ -142,19 +143,16 @@
             chatInput.disabled = true;
 
             try {
-                const res = await fetch('/api/chat', {
+                const data = await api('/api/chat', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({message})
                 });
-                
-                const data = await res.json();
                 
                 // Remove typing indicator
                 const typingIndicator = document.getElementById('typingIndicator');
                 if (typingIndicator) typingIndicator.remove();
                 
-                if (res.ok) {
+                if (data.reply) {
                     appendMessage('bot', data.reply);
                 } else {
                     appendMessage('bot', "Sorry, I am facing some issues. Please try again later.");
@@ -169,11 +167,6 @@
                 chatInput.focus();
             }
         });
-
-        async function logout() {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            window.location.href = '/login';
-        }
     </script>
 </body>
 </html>

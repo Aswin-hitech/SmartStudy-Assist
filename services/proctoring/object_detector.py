@@ -1,20 +1,41 @@
-import os
 from ultralytics import YOLO
 
-# Suppress YOLO output for cleaner console
+# Load model once
 model = YOLO("yolov8n.pt")
 
+
 def detect_objects(frame):
-    """Run object detection on the frame and alert if a cell phone is found."""
+    """
+    Returns:
+    {
+        "person": bool,
+        "phone": bool,
+        "boxes": [(label, x1, y1, x2, y2, conf)]
+    }
+    """
     results = model(frame, verbose=False)
-    detections = []
+
+    person_detected = False
+    phone_detected = False
+    boxes = []
 
     for r in results:
         for box in r.boxes:
             cls = int(box.cls[0])
             label = model.names[cls]
 
-            if label == "cell phone":
-                detections.append("Phone Detected 🚨")
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            conf = float(box.conf[0])
 
-    return detections
+            boxes.append((label, x1, y1, x2, y2, conf))
+
+            if label == "person":
+                person_detected = True
+            elif label == "cell phone":
+                phone_detected = True
+
+    return {
+        "person": person_detected,
+        "phone": phone_detected,
+        "boxes": boxes
+    }

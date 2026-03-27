@@ -52,6 +52,7 @@ def get_report_pdf(report_id):
     from flask import send_file
     buffer = io.BytesIO()
     generate_report_pdf(report, user, buffer)
+    buffer.seek(0)
     
     return send_file(
         buffer,

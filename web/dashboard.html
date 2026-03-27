@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/static/js/main.js"></script>
     <style>
         .stat-card {
             transition: all 0.3s cubic-bezier(0.2,0.9,0.4,1.1);
@@ -113,22 +114,18 @@
         async function fetchDashboard() {
             try {
                 // Fetch User Details
-                const profileRes = await fetch('/api/auth/me');
-                if (!profileRes.ok) {
-                    window.location.href = '/login';
-                    return;
-                }
-                const profileData = await profileRes.json();
+                const profileData = await api('/api/auth/me');
+                if (!profileData) return; // handled by api handler
+                
                 document.getElementById('greeting').innerText = `Welcome, ${profileData.user.name.split(' ')[0]}`;
                 document.getElementById('examCount').innerText = profileData.user.exam_count || 0;
                 document.getElementById('avgScore').innerText = `${profileData.user.average_score || 0}%`;
 
                 // Fetch Reports
-                const reportsRes = await fetch('/api/reports');
-                const reportsData = await reportsRes.json();
+                const reportsData = await api('/api/reports');
                 const tableBody = document.getElementById('reportsTable');
                 
-                if (reportsData.reports.length === 0) {
+                if (!reportsData.reports || reportsData.reports.length === 0) {
                     tableBody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">No exams taken yet. Start by generating a new test!</td></tr>`;
                     return;
                 }
@@ -155,16 +152,13 @@
                 }).join('');
 
             } catch (err) {
-                console.error(err);
+                console.error("Dashboard Load Error:", err);
+                const tableBody = document.getElementById('reportsTable');
+                if (tableBody) tableBody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-500">Failed to load reports. Please try refreshing.</td></tr>`;
             }
         }
 
-        async function logout() {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            window.location.href = '/login';
-        }
-
-        fetchDashboard();
+        document.addEventListener('DOMContentLoaded', fetchDashboard);
     </script>
 </body>
 </html>

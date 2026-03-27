@@ -1,12 +1,44 @@
-from services.llm_services import get_llm
+from services.llm_services import get_llm, AI_METRICS, reset_ai_metrics
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from config import reports_col
 from services.vector_service import store_vector
 from services.auth_service import update_exam_stats
+from services.metrics_service import generate_all_graphs
 from bson import ObjectId
 import json
 from datetime import datetime
+
+
+# ================= ANSWER COMPARISON HELPER =================
+def is_correct(user_ans, correct_ans, options):
+    """Robust answer comparison that handles int/string mismatch."""
+    try:
+        if user_ans is None:
+            return False
+
+        # Both are ints → direct compare
+        if isinstance(user_ans, int) and isinstance(correct_ans, int):
+            return user_ans == correct_ans
+
+        # Coerce both to int for comparison
+        try:
+            return int(user_ans) == int(correct_ans)
+        except (ValueError, TypeError):
+            pass
+
+        # User sent option text instead of index
+        if isinstance(user_ans, str) and isinstance(options, list):
+            user_ans_clean = user_ans.strip().lower()
+            for i, opt in enumerate(options):
+                if str(opt).strip().lower() == user_ans_clean:
+                    return i == int(correct_ans)
+
+        return False
+    except Exception as e:
+        print(f"[EVAL WARN] is_correct() error: {e}")
+        return False
+
 
 def evaluate_exam(user_id, mcqs, user_answers, preformed_answers=None, position_changes=0, **kwargs):
     # Movement threshold: signal suspicious activity if exceeded
@@ -30,24 +62,31 @@ def evaluate_exam(user_id, mcqs, user_answers, preformed_answers=None, position_
         for i, mcq in enumerate(mcqs):
             correct_ans_idx = mcq.get("answer")
             user_ans = user_answers[i] if i < len(user_answers) else None
-            
+            options = mcq.get("options", [])
+
+            correct = is_correct(user_ans, correct_ans_idx, options)
+
+            # Debug log for mismatches
+            if not correct and user_ans is not None:
+                print(f"[EVAL DEBUG] Q{i}: user={user_ans}({type(user_ans).__name__}) correct={correct_ans_idx}({type(correct_ans_idx).__name__}) → WRONG")
+
             # Track detailed results
             answers_detailed.append({
                 "question": mcq.get("question"),
-                "options": mcq.get("options"),
+                "options": options,
                 "correct_idx": correct_ans_idx,
                 "user_idx": user_ans,
-                "is_correct": user_ans == correct_ans_idx,
-                "topic": mcq.get("topic", "General") # Ensure topic is stored here
+                "is_correct": correct,
+                "topic": mcq.get("topic", "General")
             })
 
             topic = mcq.get("topic", "General")
             if topic not in topic_performance:
                 topic_performance[topic] = {"correct": 0, "total": 0}
-                
+
             topic_performance[topic]["total"] += 1
 
-            if user_ans == correct_ans_idx:
+            if correct:
                 score += 1
                 topic_performance[topic]["correct"] += 1
 
@@ -97,6 +136,7 @@ Provide concise, actionable suggestions for improvement. Keep it under 60 words.
         "suspicious_movement": position_changes > MOVEMENT_THRESHOLD,
         "challenge_attempts": 0,
         "challenge_summary": None,
+        "ai_metrics": AI_METRICS.copy(), # Store captured AI metrics
         "created_at": datetime.utcnow()
     }
 
@@ -109,6 +149,15 @@ Provide concise, actionable suggestions for improvement. Keep it under 60 words.
     
     # Update user stats
     update_exam_stats(user_id, percentage)
+
+    # Generate Graphs
+    try:
+        generate_all_graphs(user_id)
+    except Exception as e:
+        print(f"[FAIL-SAFE] Graph generation failed: {e}")
+
+    # Reset metrics for next action
+    reset_ai_metrics()
 
     return report_data
 

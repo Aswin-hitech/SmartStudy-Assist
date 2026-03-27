@@ -33,22 +33,33 @@ def api_generate_exam():
         session["current_exam"] = result["mcqs"]
         return jsonify(result)
 
-    # Practice -> PDF
-    import io
-    from flask import send_file
-
-    practice_paper = result.get("practice_paper")
-    if not practice_paper:
+    # Practice -> Return JSON for preview (Practice PDF)
+    if not result.get("practice_paper"):
         return jsonify({"error": "Failed to generate practice paper content."}), 500
 
+    return jsonify(result) # returns {"practice_paper": "..."}
+
+
+@exam_bp.route("/api/download_practice_pdf", methods=["POST"])
+def api_download_practice_pdf():
+    data = request.get_json()
+    practice_paper = data.get("practice_paper")
+    
+    if not practice_paper:
+        return jsonify({"error": "No paper content provided."}), 400
+
+    import io
+    from flask import send_file
+    
     buffer = io.BytesIO()
     generate_pdf(practice_paper, buffer)
+    buffer.seek(0)
     
     return send_file(
         buffer,
         mimetype='application/pdf',
         as_attachment=True,
-        download_name="practice_paper.pdf"
+        download_name="StudySmart_Practice.pdf"
     )
 
 @exam_bp.route("/api/submit_exam", methods=["POST"])

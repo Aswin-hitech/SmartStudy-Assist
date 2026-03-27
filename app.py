@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
@@ -40,16 +40,19 @@ def index():
 
 @app.route("/chat")
 def chat():
+    if "user_id" not in session: return redirect(url_for("login_page"))
     return render_template("chat.html")
 
 
 @app.route("/upload")
 def upload():
+    if "user_id" not in session: return redirect(url_for("login_page"))
     return render_template("generate_qp.html")
 
 
 @app.route("/test")
 def test():
+    if "user_id" not in session: return redirect(url_for("login_page"))
     return render_template("test.html")
 
 
@@ -65,11 +68,13 @@ def register_page():
 
 @app.route("/dashboard")
 def dashboard():
+    if "user_id" not in session: return redirect(url_for("login_page"))
     return render_template("dashboard.html")
 
 
 @app.route("/report_view")
 def report_page():
+    if "user_id" not in session: return redirect(url_for("login_page"))
     return render_template("report.html")
 
 
@@ -87,24 +92,6 @@ def api_chat():
     return jsonify({"reply": reply})
 
 
-# ================= PROCTORING STATUS API =================
-# 🔥 REQUIRED for head position + count display
-
-@app.route("/api/head_status")
-def get_head_status():
-    try:
-        from services.proctoring.proctoring_system import head_status, head_warnings
-
-        return jsonify({
-            "status": head_status,
-            "count": head_warnings
-        })
-
-    except Exception as e:
-        return jsonify({
-            "status": "Unavailable",
-            "count": 0
-        })
 
 
 # ================= RUN =================

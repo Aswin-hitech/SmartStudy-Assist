@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/static/js/main.js"></script>
 </head>
 <body class="bg-gray-50 flex min-h-screen">
 
@@ -110,14 +111,22 @@
                     </button>
                 </form>
 
+                <div id="paperDisplay" class="mt-8 hidden p-8 bg-gray-50 border border-gray-100 rounded-3xl shadow-inner-sm">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">Generated Practice Paper</h3>
+                        <span class="px-3 py-1 bg-indigo-100 text-indigo-600 text-xs font-bold rounded-full uppercase">Preview</span>
+                    </div>
+                    <pre id="paperContent" class="text-sm text-gray-700 leading-relaxed font-mono bg-white p-6 rounded-2xl border border-gray-50 overflow-auto max-h-[500px]" style="white-space: pre-wrap;"></pre>
+                </div>
+
                 <div id="downloadSection" class="mt-8 hidden p-6 bg-emerald-50 border border-emerald-100 rounded-3xl text-center">
                     <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fa-solid fa-check text-emerald-600 text-xl"></i>
                     </div>
-                    <p class="text-emerald-800 font-bold mb-4">Your Practice PDF is ready!</p>
-                    <a id="downloadLink" href="#" class="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-md">
-                        <i class="fa-solid fa-file-pdf"></i> Download Now
-                    </a>
+                    <p class="text-emerald-800 font-bold mb-4">Your Practice PDF is ready for download!</p>
+                    <button id="downloadBtn" class="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-md">
+                        <i class="fa-solid fa-file-pdf"></i> Download PDF
+                    </button>
                 </div>
             </div>
         </div>
@@ -208,30 +217,56 @@
             btnIcon.className = "fa-solid fa-spinner fa-spin";
 
             try {
-                const res = await fetch('/api/generate_exam', {
+                const data = await api('/api/generate_exam', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
 
-                if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.error || "Generation process failed.");
-                }
+                console.log("API RESPONSE:", data);
 
                 if (mode === 'test') {
-                    const data = await res.json();
                     if (!data.mcqs || data.mcqs.length === 0) throw new Error("AI returned empty question set.");
-                    
                     localStorage.setItem('currentExamData', JSON.stringify(data.mcqs));
                     window.location.href = '/test';
                 } else {
-                    const blob = await res.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.getElementById('downloadLink');
-                    link.href = url;
-                    link.download = "StudySmart_Practice.pdf";
-                    downloadSection.classList.remove('hidden');
+                    if (!data.practice_paper) throw new Error("AI failed to generate paper content.");
+                    
+                    // SHOW TEXT ON SCREEN
+                    document.getElementById("paperDisplay").classList.remove("hidden");
+                    document.getElementById("paperContent").innerText = data.practice_paper;
+                    
+                    // SHOW DOWNLOAD SECTION
+                    document.getElementById('downloadSection').classList.remove('hidden');
+                    
+                    // Setup Download Functionality
+                    document.getElementById('downloadBtn').onclick = async () => {
+                        const originalBtnText = document.getElementById('downloadBtn').innerHTML;
+                        document.getElementById('downloadBtn').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing...';
+                        
+                        try {
+                            const blob = await api('/api/download_practice_pdf', {
+                                method: 'POST',
+                                body: JSON.stringify({ practice_paper: data.practice_paper }),
+                                isBlob: true
+                            });
+                            
+                            if (blob) {
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = "StudySmart_Practice.pdf";
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                                window.URL.revokeObjectURL(url);
+                            }
+                        } catch (dlErr) {
+                            alert("Download failed: " + dlErr.message);
+                        } finally {
+                            document.getElementById('downloadBtn').innerHTML = originalBtnText;
+                        }
+                    };
+
                     btnText.innerText = "Generated Successfully!";
                 }
 

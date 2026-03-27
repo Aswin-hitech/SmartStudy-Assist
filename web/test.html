@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/static/js/main.js"></script>
 </head>
 
 <body class="min-h-screen flex flex-col bg-gray-50 overflow-x-hidden">
@@ -197,13 +198,11 @@ async function submitTest() {
     }
 
     try {
-        const res = await fetch("/api/submit_exam", {
+        const data = await api("/api/submit_exam", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ answers })
         });
 
-        const data = await res.json();
         if (data.report_id) {
             window.location.href = `/report_view?id=${data.report_id}`;
         } else {
@@ -220,8 +219,7 @@ async function submitTest() {
 // ================= HEAD STATUS FETCH =================
 async function updateHeadStatus() {
     try {
-        const res = await fetch("/api/proctoring_status"); // Using blueprint route
-        const data = await res.json();
+        const data = await api("/api/head_status"); 
 
         const statusEl = document.getElementById("headStatus");
         const countEl = document.getElementById("headCount");

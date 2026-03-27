@@ -1,7 +1,10 @@
 import cv2
-from flask import Blueprint, Response
-from services.proctoring.proctoring_system import analyze_frame
-import services.proctoring.proctoring_system as ps
+from flask import Blueprint, Response, jsonify
+from services.proctoring.proctoring_system import (
+    analyze_frame,
+    SuspicionTracker,
+    MovementTracker
+)
 import threading
 import atexit
 
@@ -16,9 +19,25 @@ stop_event = threading.Event()
 def get_camera():
     global camera
     with camera_lock:
-        if camera is None or not camera.isOpened():
-            camera = cv2.VideoCapture(0)
-    return camera
+        if camera is not None and camera.isOpened():
+            return camera
+
+        for i in range(3):
+            try:
+                cap = cv2.VideoCapture(i)
+                if cap.isOpened():
+                    ret, _ = cap.read()
+                    if ret:
+                        print(f"[CAMERA] Using camera index {i}")
+                        camera = cap
+                        return camera
+                    cap.release()
+            except Exception as e:
+                print(f"[CAMERA] Index {i} failed: {e}")
+
+        print("[CAMERA ERROR] No working camera found")
+        camera = None
+    return None
 
 
 def release_camera():
@@ -79,24 +98,33 @@ def generate_frames():
     cam = get_camera()
 
     if not cam or not cam.isOpened():
+        print("[CAMERA ERROR] Cannot start stream — no camera available")
         return
 
     stop_event.clear()
 
+    # ✅ IMPORTANT: create once (NOT inside loop)
+    tracker = SuspicionTracker()
+    movement = MovementTracker()
+
     while not stop_event.is_set():
-        success, frame = cam.read()
-        if not success:
-            break
+        ret, frame = cam.read()
+        if not ret:
+            print("[CAMERA ERROR] Frame not received")
+            continue
 
         try:
-            processed_frame, current_status, head_pos = analyze_frame(frame)
+            # ✅ NEW: pass tracker + movement
+            processed_frame, current_status, data = analyze_frame(
+                frame, tracker, movement
+            )
 
+            # update global state
             state.update(current_status)
-            state.record_position(head_pos)
 
-            # Sync for app.py
-            ps.head_status = head_pos
-            ps.head_warnings = state.position_change_count
+            # optional: track head movement (if available)
+            head_pos = data.get("status", "Unknown")
+            state.record_position(head_pos)
 
         except Exception as e:
             print("[Proctoring Error]", e)
@@ -112,14 +140,13 @@ def generate_frames():
             buffer.tobytes() + b'\r\n'
         )
 
-    # 🔥 When loop exits → release camera
     release_camera()
 
 
 # ================= ROUTES =================
-@proctoring_bp.route("/api/proctoring_status")
-def get_proctoring_status():
-    return state.get_status()
+@proctoring_bp.route("/api/head_status")
+def get_head_status():
+    return jsonify(state.get_status())
 
 
 @proctoring_bp.route("/api/proctoring_reset")
@@ -128,14 +155,11 @@ def reset_proctoring():
     return {"message": "State reset"}
 
 
-@proctoring_bp.route("/api/proctoring_stop")
+@proctoring_bp.route("/api/proctoring_stop", methods=["GET", "POST"])
 def stop_proctoring():
-    # 🔥 SIGNAL LOOP TO STOP
     stop_event.set()
-
     release_camera()
     state.reset()
-
     return {"message": "Proctoring stopped safely"}
 
 
